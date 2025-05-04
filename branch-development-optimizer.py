@@ -7,8 +7,8 @@ r = 0.05  # interest rate
 g = 0.02  # OD flow growth rate
 s = 0.1  # savings rate for concurrent station construction
 v = 25  # value of time
-mu_m = 100000  # maintenance cost per station per year
-mu_o = 200000  # operating cost per train per year
+mu_m = 1000000  # maintenance cost per station per year
+mu_o = 2000000  # operating cost per train per year
 L = 1  # max one-way distance for a branch line
 V_rail = 45  # train speed (km/h)
 V_car = 30  # car speed (km/h)
@@ -27,11 +27,13 @@ car_dists = {
     ('C', 'D'): 1/4 + (15/16)**(1/2), ('E', 'F'): 1/4 + (15/16)**(1/2)
 }
 rail_dists = {
-    
+    ('A', 'C'): L, ('A', 'D'): L, ('A', 'E'): L, ('A', 'F'): L,
+    ('B', 'C'): L, ('B', 'D'): L, ('B', 'E'): L, ('B', 'F'): L, 
+    ('C', 'D'): L, ('E', 'F'): L
 }
 OD_flows_0 = {
-    ('A', 'C'): 120, ('A', 'D'): 140, ('A', 'E'): 100, ('A', 'F'): 80,
-    ('B', 'C'): 110, ('B', 'D'): 130, ('B', 'E'): 90,  ('B', 'F'): 70
+    ('A', 'C'): 120000, ('A', 'D'): 140000, ('A', 'E'): 100000, ('A', 'F'): 80000,
+    ('B', 'C'): 110000, ('B', 'D'): 130000, ('B', 'E'): 90000,  ('B', 'F'): 70000
 }
 
 # Generate valid construction schedules
@@ -67,7 +69,7 @@ def compute_cost(schedule):
             ft = f0 * ((1 + g) ** t)
             served = 1 if j in y[t] and y[t][j] else 0
             t_car = car_dists[(i, j)] / V_car * 60 + tparking
-            t_rail = taccess + car_dists[(i, j)] / V_rail * 60
+            t_rail = taccess + rail_dists[(i, j)] / V_rail * 60
             Cu += v * ft * (t_rail * served + t_car * (1 - served))
 
         # Operating cost
