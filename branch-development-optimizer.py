@@ -1,112 +1,92 @@
 import itertools
-from math import sqrt
+import numpy as np
 
-# Parameters (same as before)
-stations = ['C', 'D', 'E', 'F']
-T = 3
-r = 0.03
-g = 0.05
-savings_rate = 0.2
-mu_m = 5000
-mu_o = 10000
-v_user = 15
-B = 5e6
-taccess = 5
-tparking = 5
-V_rail = 40
-V_car = 30
-L = 10
-od_flows_0 = {('C','D'): 500, ('E','F'): 600}
-d_rail = {('C','D'): 10, ('E','F'): 12}
-d_car = d_rail.copy()
-c = {'C': 1e6, 'D': 1.2e6, 'E': 1.1e6, 'F': 1.3e6}
+# Parameters
+T = 30  # number of time periods
+r = 0.05  # interest rate
+g = 0.02  # OD flow growth rate
+s = 0.1  # savings rate for concurrent station construction
+v = 15  # value of time
+mu_m = 1000  # maintenance cost per station per year
+mu_o = 2000  # operating cost per train per year
+L = 10  # max one-way distance for a branch line
+V_rail = 40  # train speed (km/h)
+V_car = 30  # car speed (km/h)
+taccess = 5  # access time to rail station (min)
+tparking = 10  # parking time for car (min)
+B = 1e6  # total budget
 
-def present_value(amount, t):
-    return amount / ((1 + r)**t)
+# Station build costs
+station_costs = {'C': 100000, 'D': 120000, 'E': 110000, 'F': 130000}
+station_order = ['C', 'D', 'E', 'F']
 
-def build_schedule_cost(schedule):
-    # schedule: dict {station: period (1..T) or 0 if not built}
-    total_npc = 0
-    construction_costs = [0]*T
-    maintenance_costs = [0]*T
-    operating_costs = [0]*T
-    user_costs = [0]*T
+# Car OD distances and flows
+car_dists = {
+    ('A', 'C'): 8, ('A', 'D'): 12, ('A', 'E'): 9, ('A', 'F'): 13,
+    ('B', 'C'): 7, ('B', 'D'): 11, ('B', 'E'): 8, ('B', 'F'): 12
+}
+OD_flows_0 = {k: 100 for k in car_dists.keys()}
 
-    for t in range(1, T+1):
-        built_now = [s for s in stations if schedule[s] == t]
-        built_so_far = [s for s in stations if 0 < schedule[s] <= t]
+# Generate valid construction schedules
+def valid_schedules():
+    all_scheds = itertools.product(range(T), repeat=4)
+    for sched in all_scheds:
+        tC, tD, tE, tF = sched
+        if tD >= tC and tF >= tE and tC != tE:
+            yield dict(zip(station_order, sched))
 
-        # Construction cost
-        const_cost = sum(c[s] for s in built_now)
-        if 'C' in built_now and 'D' in built_now:
-            const_cost -= (c['C'] + c['D']) * savings_rate
-        if 'E' in built_now and 'F' in built_now:
-            const_cost -= (c['E'] + c['F']) * savings_rate
-        construction_costs[t-1] = const_cost
+# Compute cost for a given schedule
+def compute_cost(schedule):
+    NPC = 0
+    y = {t: {station: 0 for station in station_order} for t in range(T)}
+    for station, t in schedule.items():
+        for future_t in range(t, T):
+            y[future_t][station] = 1
+
+    total_spent = 0
+    for t in range(T):
+        # Construction costs
+        c_new = sum((y[t][station] - y[t - 1][station]) * station_costs[station] if t > 0 else y[t][station] * station_costs[station] for station in station_order)
+        sCD = y[t]['C'] * y[t]['D'] * (station_costs['C'] + station_costs['D']) * s
+        sEF = y[t]['E'] * y[t]['F'] * (station_costs['E'] + station_costs['F']) * s
+        Cc = c_new - (sCD + sEF)
 
         # Maintenance cost
-        maintenance_costs[t-1] = mu_m * len(built_so_far)
-
-        # Operating cost
-        y_CE = 1 if 'C' in built_so_far and 'E' in built_so_far else 0
-        y_DF = 1 if 'D' in built_so_far and 'F' in built_so_far else 0
-        k = len(built_so_far) - y_CE - y_DF
-        R = (2 + 2 * k) * L / V_rail
-        q = 0.5 * sum((1 + g)**t * od_flows_0[od] for od in od_flows_0)
-        h_AB = sqrt(R * mu_o / (q * v_user)) if q > 0 else 1
-        N = R / h_AB
-        operating_costs[t-1] = mu_o * N
+        Cm = mu_m * sum(y[t].values())
 
         # User cost
-        user_c = 0
-        for (i, j), f0 in od_flows_0.items():
-            y_j = 1 if j in built_so_far else 0
-            f_ij = f0 * (1 + g)**t
-            h_ij = 2 * sqrt(R * mu_o / (f_ij * v_user)) if f_ij > 0 else 1
-            t_rail = taccess + h_ij/2 + d_rail[(i, j)] / V_rail
-            t_car = d_car[(i, j)] / V_car + tparking
-            user_c += f_ij * (t_rail * y_j + t_car * (1 - y_j))
-        user_costs[t-1] = v_user * user_c
+        Cu = 0
+        for (i, j), f0 in OD_flows_0.items():
+            ft = f0 * ((1 + g) ** t)
+            served = 1 if j in y[t] and y[t][j] else 0
+            t_car = car_dists[(i, j)] / V_car * 60 + tparking
+            t_rail = taccess + car_dists[(i, j)] / V_rail * 60
+            Cu += v * ft * (t_rail * served + t_car * (1 - served))
 
-    # Budget check
-    cumulative_cost = 0
-    feasible = True
-    for t in range(1, T+1):
-        yearly = construction_costs[t-1] + maintenance_costs[t-1] + operating_costs[t-1]
-        cumulative_cost += yearly
-        if cumulative_cost > (t / T) * B:
-            feasible = False
-            break
+        # Operating cost
+        k = sum(y[t].values()) - y[t]['C'] * y[t]['E'] - y[t]['D'] * y[t]['F']
+        R = (2 + 2 * k) * L / V_rail
+        q = 0.5 * sum(f0 * ((1 + g) ** t) for f0 in OD_flows_0.values())
+        hAB = np.sqrt(R * mu_o / (q * v)) if q > 0 else 1
+        N = R / hAB
+        Co = mu_o * N
 
-    if not feasible:
-        return float('inf')  # Infeasible due to budget
+        # Total cost for period
+        CS = Cc + Cm + Co
+        total_spent += CS
+        if total_spent > (t + 1) / T * B:
+            return float('inf')
+        NPC += (CS + Cu) / ((1 + r) ** (t + 1))
+    return NPC
 
-    # Total NPC
-    for t in range(1, T+1):
-        total = (construction_costs[t-1] + maintenance_costs[t-1] +
-                 operating_costs[t-1] + user_costs[t-1])
-        total_npc += present_value(total, t)
-
-    return total_npc
-
-# Exhaustive search
-best_schedule = None
+# Find the optimal schedule
+best_sched = None
 best_cost = float('inf')
-
-# Enumerate all (T+1)^4 = 256 schedules
-for values in itertools.product(range(T+1), repeat=4):  # 0 means not built
-    schedule = dict(zip(stations, values))
-    cost = build_schedule_cost(schedule)
+for sched in valid_schedules():
+    cost = compute_cost(sched)
     if cost < best_cost:
         best_cost = cost
-        best_schedule = schedule
+        best_sched = sched
 
-# Output
-print("\nBest Schedule:")
-for s in stations:
-    t = best_schedule[s]
-    if t == 0:
-        print(f"Station {s}: not built")
-    else:
-        print(f"Station {s}: build in period {t}")
-print(f"Total Net Present Cost: ${best_cost:,.2f}")
+print("Best Schedule:", best_sched)
+print("Minimum Net Present Cost:", round(best_cost, 2))
