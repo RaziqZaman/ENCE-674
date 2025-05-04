@@ -2,19 +2,19 @@ import itertools
 import numpy as np
 
 # Parameters
-T = 30  # number of time periods
+T = 24  # number of time periods
 r = 0.05  # interest rate
 g = 0.02  # OD flow growth rate
 s = 0.1  # savings rate for concurrent station construction
 v = 15  # value of time
-mu_m = 1000  # maintenance cost per station per year
-mu_o = 2000  # operating cost per train per year
-L = 10  # max one-way distance for a branch line
+mu_m = 10000  # maintenance cost per station per year
+mu_o = 200000  # operating cost per train per year
+L = 1  # max one-way distance for a branch line
 V_rail = 40  # train speed (km/h)
 V_car = 30  # car speed (km/h)
 taccess = 5  # access time to rail station (min)
 tparking = 10  # parking time for car (min)
-B = 1e6  # total budget
+B = 1e8  # total budget
 
 # Station build costs
 station_costs = {'C': 100000, 'D': 120000, 'E': 110000, 'F': 130000}
@@ -22,8 +22,9 @@ station_order = ['C', 'D', 'E', 'F']
 
 # Car OD distances and flows
 car_dists = {
-    ('A', 'C'): 8, ('A', 'D'): 12, ('A', 'E'): 9, ('A', 'F'): 13,
-    ('B', 'C'): 7, ('B', 'D'): 11, ('B', 'E'): 8, ('B', 'F'): 12
+    ('A', 'C'): 5/4 + (15/16)**(1/2), ('A', 'D'): 3/2 + (15/4)**(1/2), ('A', 'E'): 5/4 + (15/16)**(1/2), ('A', 'F'): 3/2 + (15/4)**(1/2),
+    ('B', 'C'): 1/4 + (15/16)**(1/2), ('B', 'D'): 3/2 + (15/4)**(1/2), ('B', 'E'): 1/4 + (15/16)**(1/2), ('B', 'F'): 3/2 + (15/4)**(1/2), 
+    ('C', 'D'): 1/4 + (15/16)**(1/2), ('E', 'F'): 1/4 + (15/16)**(1/2)
 }
 OD_flows_0 = {k: 100 for k in car_dists.keys()}
 
