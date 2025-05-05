@@ -22,16 +22,19 @@ station_order = ['C', 'D', 'E', 'F']
 
 # Car OD distances and flows
 car_dists = {
+    ('A', 'B'): 3.0,
     ('A', 'C'): (5/4 + (15/16)**(1/2))*L, ('A', 'D'): 3/2 + (15/4)**(1/2), ('A', 'E'): 5/4 + (15/16)**(1/2), ('A', 'F'): 3/2 + (15/4)**(1/2),
     ('B', 'C'): 1/4 + (15/16)**(1/2), ('B', 'D'): 3/2 + (15/4)**(1/2), ('B', 'E'): 1/4 + (15/16)**(1/2), ('B', 'F'): 3/2 + (15/4)**(1/2), 
     ('C', 'D'): 1/4 + (15/16)**(1/2), ('E', 'F'): 1/4 + (15/16)**(1/2)
 }
 rail_dists = {
+    ('A', 'B'): 2.0,
     ('A', 'C'): L, ('A', 'D'): L, ('A', 'E'): L, ('A', 'F'): L,
     ('B', 'C'): L, ('B', 'D'): L, ('B', 'E'): L, ('B', 'F'): L, 
     ('C', 'D'): L, ('E', 'F'): L
 }
 OD_flows_0 = {
+    ('A', 'B'): 100000,
     ('A', 'C'): 120000, ('A', 'D'): 140000, ('A', 'E'): 100000, ('A', 'F'): 80000,
     ('B', 'C'): 110000, ('B', 'D'): 130000, ('B', 'E'): 90000,  ('B', 'F'): 70000
 }
@@ -67,7 +70,7 @@ def compute_cost(schedule):
         Cu = 0
         for (i, j), f0 in OD_flows_0.items():
             ft = f0 * ((1 + g) ** t)
-            served = 1 if j in y[t] and y[t][j] else 0
+            served = 1 if (i not in station_order or y[t][i]) and (j not in station_order or y[t][j]) else 0
             t_car = car_dists[(i, j)] / V_car * 60 + tparking
             t_rail = taccess + rail_dists[(i, j)] / V_rail * 60
             Cu += v * ft * (t_rail * served + t_car * (1 - served))
@@ -97,5 +100,5 @@ for sched in valid_schedules():
         best_cost = cost
         best_sched = sched
 
-print("Best Schedule:", best_sched)
-print("Minimum Net Present Cost:", round(best_cost, 2))
+print(best_sched)
+print("Minimum NPC: " + str(round(best_cost, 2)))
