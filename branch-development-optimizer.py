@@ -10,10 +10,10 @@ v = 24  # value of time
 mu_m = 12e6  # maintenance cost per station per year
 mu_o = 1e6  # operating cost per train per year
 L = 2  # link length (miles)
-V_rail = 45  # train speed (km/h)
-V_car = 30  # car speed (km/h)
-taccess = 6  # access time to rail station (min)
-tparking = 6  # parking time for car (min)
+V_rail = 45  # train speed (mph)
+V_car = 30  # car speed (mph)
+taccess = 12  # access time to rail station (min)
+tparking = 12  # parking time for car (min)
 B = 1e9  # total budget
 
 # Station build costs
@@ -83,27 +83,33 @@ def compute_cost(schedule):
         c_new = sum((y[t][station] - y[t - 1][station]) * station_costs[station] if t > 0 else y[t][station] * station_costs[station] for station in station_order)
         sCD = y[t]['C'] * y[t]['D'] * (station_costs['C'] + station_costs['D']) * s
         sEF = y[t]['E'] * y[t]['F'] * (station_costs['E'] + station_costs['F']) * s
+        sCDF = y[t]['C'] * y[t]['D'] * y[t]['F'] * (station_costs['F']) * s
+        sDEF = y[t]['D'] * y[t]['E'] * y[t]['F'] * (station_costs['D']) * s
         Cc = c_new - (sCD + sEF)
 
         # Maintenance cost
         Cm = mu_m * sum(y[t].values())
-
-        # User cost
-        Cu = 0
-        for (i, j), f0 in OD_flows_0.items():
-            ft = f0 * ((1 + g) ** t)
-            served = 1 if (i not in station_order or y[t][i]) and (j not in station_order or y[t][j]) else 0
-            t_car = car_dists[(i, j)] / V_car * 60 + tparking
-            t_rail = taccess + rail_dists[(i, j)] / V_rail * 60
-            Cu += v * ft * (t_rail * served + t_car * (1 - served))
 
         # Operating cost
         k = sum(y[t].values()) - y[t]['C'] * y[t]['E'] - y[t]['D'] * y[t]['F']
         R = (2 + 2 * k) * L / V_rail
         q = sum(f0 * ((1 + g) ** t) for f0 in OD_flows_0.values())
         hAB = np.sqrt(R * mu_o / (q * v)) if q > 0 else 1
-        N = R / hAB
+        N = round(R / hAB)
         Co = mu_o * N
+
+        # User cost
+        Cu = 0
+        for (i, j), f0 in OD_flows_0.items():
+            if (i == 'A') or ((i,j) == ('B', 'A')):
+                h = hAB
+            else:
+                h = (y[t]['C']*y[t]['E'])*(2*hAB) + ((y[t]['C']-y[t]['E'])**2)*(hAB)
+            ft = f0 * ((1 + g) ** t)
+            served = 1 if (i not in station_order or y[t][i]) and (j not in station_order or y[t][j]) else 0
+            t_car = car_dists[(i, j)] / V_car * 60 + tparking
+            t_rail = taccess + h/2 + rail_dists[(i, j)] / V_rail * 60
+            Cu += v * ft * (t_rail * served + t_car * (1 - served))
 
         # Total cost for period
         CS = Cc + Cm + Co
