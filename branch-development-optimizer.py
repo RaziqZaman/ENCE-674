@@ -6,15 +6,15 @@ T = 24  # number of time periods
 r = 0.05  # interest rate
 g = 0.02  # OD flow growth rate
 s = 0.1  # savings rate for concurrent station construction
-v = 25  # value of time
-mu_m = 1000000  # maintenance cost per station per year
+v = 24  # value of time
+mu_m = 9.5e6  # maintenance cost per station per year
 mu_o = 2000000  # operating cost per train per year
 L = 1  # max one-way distance for a branch line
 V_rail = 45  # train speed (km/h)
 V_car = 30  # car speed (km/h)
 taccess = 5  # access time to rail station (min)
 tparking = 10  # parking time for car (min)
-B = 5e7  # total budget
+B = 5e12  # total budget
 
 # Station build costs
 station_costs = {'C': 100000, 'D': 120000, 'E': 110000, 'F': 130000}
