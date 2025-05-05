@@ -14,10 +14,10 @@ V_rail = 45  # train speed (km/h)
 V_car = 30  # car speed (km/h)
 taccess = 6  # access time to rail station (min)
 tparking = 6  # parking time for car (min)
-B = 360e6  # total budget
+B = 1e9  # total budget
 
 # Station build costs
-station_costs = {'C': 100000, 'D': 120000, 'E': 110000, 'F': 130000}
+station_costs = {'C': 80e6, 'D': 80e6, 'E': 80e6, 'F': 80e6}
 station_order = ['C', 'D', 'E', 'F']
 
 # Car OD distances and flows
