@@ -9,12 +9,12 @@ s = 0.1  # savings rate for concurrent station construction
 v = 24  # value of time
 mu_m = 12e6  # maintenance cost per station per year
 mu_o = 1e6  # operating cost per train per year
-L = 1  # max one-way distance for a branch line
+L = 2  # link length (miles)
 V_rail = 45  # train speed (km/h)
 V_car = 30  # car speed (km/h)
-taccess = 5  # access time to rail station (min)
-tparking = 10  # parking time for car (min)
-B = 5e12  # total budget
+taccess = 6  # access time to rail station (min)
+tparking = 6  # parking time for car (min)
+B = 360e6  # total budget
 
 # Station build costs
 station_costs = {'C': 100000, 'D': 120000, 'E': 110000, 'F': 130000}
