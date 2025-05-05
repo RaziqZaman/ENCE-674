@@ -100,7 +100,7 @@ def compute_cost(schedule):
         # Operating cost
         k = sum(y[t].values()) - y[t]['C'] * y[t]['E'] - y[t]['D'] * y[t]['F']
         R = (2 + 2 * k) * L / V_rail
-        q = 0.5 * sum(f0 * ((1 + g) ** t) for f0 in OD_flows_0.values())
+        q = sum(f0 * ((1 + g) ** t) for f0 in OD_flows_0.values())
         hAB = np.sqrt(R * mu_o / (q * v)) if q > 0 else 1
         N = R / hAB
         Co = mu_o * N
