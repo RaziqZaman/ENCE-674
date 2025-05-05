@@ -7,7 +7,7 @@ r = 0.05  # interest rate
 g = 0.02  # OD flow growth rate
 s = 0.1  # savings rate for concurrent station construction
 v = 24  # value of time
-mu_m = 12e6  # maintenance cost per station per year
+mu_m = 6e6  # maintenance cost per station per year
 mu_o = 1e6  # operating cost per train per year
 L = 2  # link length (miles)
 V_rail = 45  # train speed (mph)
@@ -88,7 +88,7 @@ def compute_cost(schedule):
         Cc = c_new - (sCD + sEF)
 
         # Maintenance cost
-        Cm = mu_m * sum(y[t].values())
+        Cm = mu_m * sum(y[t].values()) * L
 
         # Operating cost
         k = sum(y[t].values()) - y[t]['C'] * y[t]['E'] - y[t]['D'] * y[t]['F']
